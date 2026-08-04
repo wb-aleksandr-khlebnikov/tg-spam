@@ -3,6 +3,8 @@ services:
     # Image is built out of band so that stack updates stay fast and don't hit the
     # reverse proxy timeout: docker build -t tg-spam-wb-compat:latest .
     image: tg-spam-wb-compat:latest
+    # The tag exists only on the docker host, so a redeploy must never try to pull it.
+    pull_policy: never
     container_name: tg-spam-wb
     restart: unless-stopped
     environment:
