@@ -5,7 +5,7 @@ services:
     image: tg-spam-wb-compat:latest
     # The tag exists only on the docker host, so a redeploy must never try to pull it.
     pull_policy: never
-    container_name: tg-spam-wb
+    container_name: ${CONTAINER_NAME:-tg-spam-wb}
     restart: unless-stopped
     environment:
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
@@ -69,8 +69,14 @@ services:
       - tg-spam-wb_data:/srv/data
       - tg-spam-wb_log:/srv/log
     ports:
-      - "8081:8081"
+      - "${SERVER_PORT:-8081}:8081"
 
 volumes:
+  # Explicit per-stack names: the data must survive stack renames (implicit
+  # project-prefixed names recreate empty volumes on rename — this is how the
+  # learned db was lost on 2026-04-16), and :? makes a deploy without names fail
+  # loudly so a second stack can never silently attach another stack's volumes.
   tg-spam-wb_data:
+    name: ${DATA_VOLUME_NAME:?set an explicit per-stack data volume name}
   tg-spam-wb_log:
+    name: ${LOG_VOLUME_NAME:?set an explicit per-stack log volume name}
