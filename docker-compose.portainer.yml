@@ -63,6 +63,9 @@ services:
       LOGGER_MAX_SIZE: ${LOGGER_MAX_SIZE:-5M}
       SERVER_ENABLED: ${SERVER_ENABLED:-true}
       SERVER_LISTEN: ${SERVER_LISTEN:-:8081}
+      # bcrypt hash for web UI basic auth (user tg-spam); when empty the bot
+      # generates a random password on every start and prints it to the log.
+      SERVER_AUTH_HASH: ${SERVER_AUTH_HASH:-}
       TGSPAM_IN_DOCKER: "1"
     command: ${TGSPAM_COMMAND:---super=evgeny_boger}
     volumes:
