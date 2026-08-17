@@ -16,6 +16,11 @@ need() {
   fi
 }
 
+# image identity: the host must pull the CI-published image, never build or reuse a
+# local tag - a stale local image is how a deploy silently ran old code before
+need 'image: ghcr.io/wb-aleksandr-khlebnikov/tg-spam:master'
+need 'pull_policy: always'
+
 # values the stack env pins
 need 'OPENAI_MODEL: gpt-5.6-sol'
 need 'MIN_PROBABILITY: "?35"?'

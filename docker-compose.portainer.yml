@@ -1,10 +1,15 @@
 services:
   tg-spam-wb:
-    # Image is built out of band so that stack updates stay fast and don't hit the
-    # reverse proxy timeout: docker build -t tg-spam-wb-compat:latest .
-    image: tg-spam-wb-compat:latest
-    # The tag exists only on the docker host, so a redeploy must never try to pull it.
-    pull_policy: never
+    # Built and published by .github/workflows/wb-image.yml. The deployment host is a
+    # 2-CPU instance that cannot finish this build within the Portainer proxy timeout,
+    # so it only ever pulls. Requires a ghcr.io credential in Portainer (private package).
+    image: ghcr.io/wb-aleksandr-khlebnikov/tg-spam:master
+    # master is a moving tag, so never reuse whatever happens to be cached on the host;
+    # pin the :<sha> tag instead when a specific build must be held. A failed pull then
+    # fails the deploy loudly rather than silently starting a stale image.
+    # Set PULL_POLICY=never when the image was built on the host by
+    # deploy/wb-compat/build-image.sh instead of being pulled (CI unavailable).
+    pull_policy: ${PULL_POLICY:-always}
     container_name: ${CONTAINER_NAME:-tg-spam-wb}
     restart: unless-stopped
     environment:
