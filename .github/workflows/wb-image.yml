@@ -12,6 +12,12 @@ on:
     branches: [master]
   workflow_dispatch:
 
+# :master is a moving tag, so two overlapping runs can publish out of order and leave it
+# pointing at the older build. Keep one run per ref and drop the superseded one.
+concurrency:
+  group: wb-image-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
