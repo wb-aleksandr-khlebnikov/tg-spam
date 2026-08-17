@@ -1,20 +1,27 @@
 #!/bin/sh
-# Render docker-compose.portainer.yml with a prod-like env and assert the values the
-# production stack depends on. Catches lost env passthroughs and silent default
-# drift before they reach a redeploy.
+# Render each production compose file with a prod-like env and assert the values those
+# stacks depend on. Catches lost env passthroughs and silent default drift before they
+# reach a redeploy - and, since CI gates the deploy on this script, before they reach the
+# bots at all.
 set -eu
 cd "$(dirname "$0")/../.."
-ENVF=deploy/wb-compat/stack-config-test.env
-
-OUT=$(docker compose --env-file "$ENVF" -f docker-compose.portainer.yml config)
 
 fail=0
+OUT=
 need() {
   if ! printf '%s\n' "$OUT" | grep -Eq "$1"; then
     echo "FAIL: expected /$1/ in rendered config" >&2
     fail=1
   fi
 }
+
+renders_without_env() { # $1 = compose file
+  docker compose -f "$1" config >/dev/null 2>&1
+}
+
+### support chat (docker-compose.portainer.yml)
+
+OUT=$(docker compose --env-file deploy/wb-compat/stack-config-test.env -f docker-compose.portainer.yml config)
 
 # image identity: the host must pull the CI-published image, never build or reuse a
 # local tag - a stale local image is how a deploy silently ran old code before
@@ -39,9 +46,34 @@ need 'DELETE_LEAVE_MESSAGES: "?true"?'
 need 'name: tg-spam-wirenboard-chat_tg-spam-wb_data'
 need 'name: tg-spam-wirenboard-chat_tg-spam-wb_log'
 
-# a stack must not render at all without explicit volume names
-if docker compose -f docker-compose.portainer.yml config >/dev/null 2>&1; then
+if renders_without_env docker-compose.portainer.yml; then
   echo "FAIL: config rendered without DATA_VOLUME_NAME/LOG_VOLUME_NAME - :? guard lost" >&2
+  fail=1
+fi
+
+### update channel (deploy/wb-compat/docker-compose.update-channel.yml)
+
+UC=deploy/wb-compat/docker-compose.update-channel.yml
+OUT=$(docker compose --env-file deploy/wb-compat/update-channel-test.env -f "$UC" config)
+
+need 'image: ghcr.io/wb-aleksandr-khlebnikov/tg-spam:master'
+need 'pull_policy: always'
+# this bot keeps its dynamic data at the volume root, mounted at /srv/var
+need 'FILES_DYNAMIC: /srv/var'
+need 'source: tg-antispam-update_ch_data-tg-spam'
+# tuning that differs from the support chat and must not drift into its defaults
+need 'SOFT_BAN: "?true"?'
+need 'DISABLE_ADMIN_SPAM_FORWARD: "?true"?'
+need 'MIN_MSG_LEN: "?20"?'
+need 'SIMILARITY_THRESHOLD: "?0.7"?'
+# the volumes belong to the stack this one replaced, so they must stay external:
+# adopting them by label would fail, and a non-external declaration could delete them
+need 'external: true'
+need 'name: tg-antispam-update_ch_data-tg-spam'
+need 'name: tg-antispam-update_ch_log-tg-spam'
+
+if renders_without_env "$UC"; then
+  echo "FAIL: update-channel config rendered without its required env - :? guards lost" >&2
   fail=1
 fi
 
