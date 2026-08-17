@@ -7,7 +7,10 @@ on:
 
 jobs:
   build:
+    # upstream-only: the registry logins below need PKG_TOKEN/DOCKER_HUB_TOKEN, which
+    # exist only in umputun/tg-spam. this fork publishes its image via wb-image.yml.
     if: >-
+      github.repository == 'umputun/tg-spam' &&
       github.event.workflow_run.conclusion == 'success' &&
       (github.event.workflow_run.head_branch == 'master' ||
        startsWith(github.event.workflow_run.head_branch, 'v'))
