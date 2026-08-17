@@ -58,9 +58,11 @@ OUT=$(docker compose --env-file deploy/wb-compat/update-channel-test.env -f "$UC
 
 need 'image: ghcr.io/wb-aleksandr-khlebnikov/tg-spam:master'
 need 'pull_policy: always'
-# this bot keeps its dynamic data at the volume root, mounted at /srv/var
+# this bot keeps its dynamic data at the volume root, mounted at /srv/var - the mount
+# point and FILES_DYNAMIC must agree or it starts on an empty database
 need 'FILES_DYNAMIC: /srv/var'
-need 'source: tg-antispam-update_ch_data-tg-spam'
+need 'source: data-tg-spam'
+need 'target: /srv/var'
 # tuning that differs from the support chat and must not drift into its defaults
 need 'SOFT_BAN: "?true"?'
 need 'DISABLE_ADMIN_SPAM_FORWARD: "?true"?'
