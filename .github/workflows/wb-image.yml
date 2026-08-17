@@ -30,6 +30,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # Gate the deploy on the rendered production config, not just on the code: a broken
+      # compose file would otherwise reach the stacks through the webhook below.
+      - name: check rendered stack config
+        run: sh deploy/wb-compat/check-stack-config.sh
+
       # Plain docker instead of the docker/* actions: those are fetched from
       # codeload.github.com on every run, and a 429/503 there fails the job before it
       # starts (hit twice on 2026-08-17). The runner already ships docker with buildkit,
@@ -49,3 +54,20 @@ jobs:
           docker push "$IMAGE:master"
           docker push "$IMAGE:${{ github.sha }}"
           docker logout ghcr.io
+
+      # Deploy runs only after the image is published, so a red build never reaches the
+      # bots and the stack can never pull a tag that does not exist yet. The webhook is a
+      # Portainer "GitOps updates" URL: it makes the stack re-pull this repo and recreate
+      # the container. Without the secret the step is skipped, so the build stays usable
+      # for anyone without deploy access.
+      - name: trigger portainer redeploy
+        env:
+          WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK_WIRENBOARD_CHAT }}
+        run: |
+          set -eu
+          if [ -z "${WEBHOOK:-}" ]; then
+            echo "PORTAINER_WEBHOOK_WIRENBOARD_CHAT is not set, skipping deploy"
+            exit 0
+          fi
+          curl -fsS --retry 3 --retry-delay 5 -X POST "$WEBHOOK"
+          echo "portainer redeploy triggered"
