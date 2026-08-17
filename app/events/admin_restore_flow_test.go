@@ -106,7 +106,7 @@ func TestAdmin_callbackUnbanConfirmedRestoreFlow(t *testing.T) {
 		dels := deleteCalls(mockAPI)
 		require.Len(t, dels, 1, "bot's spam reply must be deleted from the primary chat")
 		assert.Equal(t, 555, dels[0].MessageID)
-		assert.Equal(t, int64(123), dels[0].ChatConfig.ChatID)
+		assert.Equal(t, int64(123), dels[0].ChatID)
 
 		sends := primChatSends(mockAPI)
 		require.Len(t, sends, 1, "original message must be reposted to the primary chat")
