@@ -60,6 +60,19 @@ to a known build, set the stack's image tag to that build's `:<sha>` and redeplo
   image's `app` user; pointing both at one log volume gives the app user a root-owned file
   and "can't write to log ... permission denied".
 
+## Web UI password
+
+Without `SERVER_AUTH_HASH` the bot generates a random password on every start and prints
+it to the log. To pin one, generate a bcrypt hash and put it in the stack environment:
+
+```sh
+printf %s 'the password' | go run ./deploy/wb-compat/authhash
+```
+
+The password is read from stdin, so it stays out of shell history and the process list.
+The root README suggests `htpasswd` or `mkpasswd`; this helper needs nothing but a
+checked-out repository.
+
 ## Secrets
 
 Tokens and the superuser list live in the stack environment in Portainer (and in
